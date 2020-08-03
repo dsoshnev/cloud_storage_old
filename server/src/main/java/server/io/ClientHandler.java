@@ -112,10 +112,7 @@ public class ClientHandler implements Runnable {
 
     private boolean checkAuthTimeout() {
         long timeout = new Date().getTime() - createdAt.getTime();
-        if(timeout >= AUTHENTICATION_TIMEOUT) {
-            return true;
-        }
-        return false;
+        return timeout >= AUTHENTICATION_TIMEOUT;
     }
 
 
