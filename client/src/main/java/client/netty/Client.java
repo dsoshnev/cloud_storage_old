@@ -2,14 +2,12 @@ package client.netty;
 
 import common.Command;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.CharsetUtil;
-import netty.CommandDecoder;
-import netty.CommandEncoder;
+import common.netty.CommandDecoder;
+import common.netty.CommandEncoder;
 
 public class Client {
 
