@@ -11,6 +11,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         System.out.printf("Client received %s: %s%n", msg.getClass().getSimpleName(), msg);
+        System.out.flush();
     }
 
     @Override
