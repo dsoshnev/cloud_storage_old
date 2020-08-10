@@ -1,7 +1,7 @@
 package server.io;
 
 import common.*;
-import sever.LogService;
+import server.LogService;
 
 import java.io.*;
 import java.net.Socket;

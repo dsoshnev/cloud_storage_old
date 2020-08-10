@@ -1,9 +1,6 @@
-package sever;
+package server;
 
 import common.UserData;
-import sever.AuthService;
-import sever.LogService;
-
 import java.io.IOException;
 import java.util.*;
 

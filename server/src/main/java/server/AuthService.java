@@ -1,7 +1,6 @@
-package sever;
+package server;
 
 import common.UserData;
-
 import java.io.IOException;
 
 public interface AuthService {
