@@ -27,7 +27,10 @@ public class Client {
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new CommandDecoder(), new CommandEncoder(), new ClientHandler());
+                    ch.pipeline().addLast(
+                            new CommandDecoder(),
+                            new CommandEncoder(),
+                            new ClientHandler());
                 }
             });
 
@@ -35,9 +38,10 @@ public class Client {
             //ChannelFuture f = b.connect(DEFAULT_HOST, DEFAULT_PORT).sync();
             Channel channel = b.connect(DEFAULT_HOST, DEFAULT_PORT).sync().channel();
             System.out.printf("client connected to %s%n", channel.remoteAddress());
-            channel.write(Command.authCommand("login1", "pass1", "Dmitry"));
-            channel.write(Command.authCommand("login2", "pass1", "Dmitry"));
-            channel.flush();
+            channel.writeAndFlush(Command.authCommand("login1", "pass1", "Dmitry"));
+            channel.writeAndFlush(Command.authCommand("login2", "pass2", "Dmitry"));
+            channel.writeAndFlush(Command.endCommand());
+            Thread.sleep(5000);
             // Wait until the connection is closed.
             // f.channel().closeFuture().sync()
             channel.close();
