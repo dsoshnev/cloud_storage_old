@@ -17,6 +17,8 @@ import server.LogService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     private static final int DEFAULT_PORT = 8189;
@@ -25,7 +27,7 @@ public class Server {
 
     private int port;
     private final AuthService authService;
-    private final List<ChannelHandlerContext> clients = new ArrayList<>();
+    private final Map<ChannelHandlerContext, UserData> cls = new ConcurrentHashMap<>();
 
     public Server(int port) {
         this.port = port;
@@ -47,20 +49,21 @@ public class Server {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(
-                                    new CommandEncoder(),
-                                    new CommandDecoder(),
-                                    new ServerHandler(init().runAuthService()));
-                        }
-                    })
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true);
-
+            ServerHandler serverHandler = new ServerHandler(init().runAuthService());
+            b.group(bossGroup, workerGroup);
+            b.channel(NioServerSocketChannel.class);
+            b.childHandler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(
+                            new CommandEncoder(),
+                            new CommandDecoder(),
+                            serverHandler
+                    );
+                }
+            });
+            b.option(ChannelOption.SO_BACKLOG, 128);
+            b.childOption(ChannelOption.SO_KEEPALIVE, true);
             // Bind and start to accept incoming connections.
             ChannelFuture f = b.bind(DEFAULT_HOST, port).sync();
             LogService.info("server is started at %s", f.channel().localAddress());
@@ -77,14 +80,14 @@ public class Server {
     private synchronized void updateUsersListMessage(ChannelHandlerContext ctx) throws IOException {
         List<UserData> users = new ArrayList<>();
         users.add(new UserData("all",null, null));
-        /*
-        for (ChannelHandlerContext client : clients) {
-            users.add(client.getUserData());
-        }*/
-        for (ChannelHandlerContext client : clients) {
-            //if(client != ctx) {
-                sendCommand(client, Command.updateUsersListCommand(users));
-            //}
+        for (Map.Entry<ChannelHandlerContext, UserData> entry : cls.entrySet()) {
+            users.add(entry.getValue());
+        }
+
+        for (Map.Entry<ChannelHandlerContext, UserData> entry : cls.entrySet()) {
+            if(!entry.getKey().equals(ctx)) {
+                sendCommand(entry.getKey(), Command.updateUsersListCommand(users));
+            }
         }
     }
 
@@ -97,14 +100,20 @@ public class Server {
         LogService.info("send: %s: %s", ctx, command);
     }
 
-    public synchronized void subscribe(ChannelHandlerContext ctx) throws IOException {
-        clients.add(ctx);
-        updateUsersListMessage(ctx);
+    public synchronized void subscribe(ChannelHandlerContext ctx, UserData userData) throws IOException {
+        cls.put(ctx, userData);
+        //System.out.println("subscribe: " + cls.size() + ":" + cls.get(ctx).login);
+        //updateUsersListMessage(ctx);
     }
 
     public synchronized void unsubscribe(ChannelHandlerContext ctx) throws IOException {
-        updateUsersListMessage(ctx);
-        clients.remove(ctx);
+        cls.remove(ctx);
+        //System.out.println("unsubscribe:" + cls.size() + ":" + cls.get(ctx).login);
+        //updateUsersListMessage(ctx);
+    }
+
+    public synchronized UserData getUserData(ChannelHandlerContext ctx) throws IOException {
+        return cls.get(ctx);
     }
 
     public AuthService getAuthService() {

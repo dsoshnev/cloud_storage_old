@@ -1,50 +1,62 @@
 package client.netty;
 
-import common.Command;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import common.netty.CommandDecoder;
-import common.netty.CommandEncoder;
+import common.*;
 
-public class Client {
+import java.io.IOException;
+
+public class Client implements AutoCloseable {
 
     private static final int DEFAULT_PORT = 8189;
-    private static final String DEFAULT_HOST = "localhost";
+    private static  final String DEFAULT_HOST = "localhost";
 
-    public static void main(String[] args) throws Exception {
+    private final NetworkService ns;
 
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+    public Client(String serverHost, int serverPort) {
+        this.ns = new NetworkService(serverHost, serverPort);
+    }
+
+    public void start(String login, String password) throws IOException, InterruptedException {
+        ns.run();
+        ns.sendAuthCommand(login, password);
+        ns.sendStorageCommand(CommandType.LS, ".");
+        ns.sendStorageCommand(CommandType.UPLOAD, login + "forUpload.txt");
+        ns.sendStorageCommand(CommandType.DOWNLOAD, login + "forDownload.txt");
+        ns.sendCommand(Command.endCommand());
+    }
+
+    @Override
+    public void close() {
         try {
-            Bootstrap b = new Bootstrap();
-            b.group(workerGroup)
-            .channel(NioSocketChannel.class)
-            .option(ChannelOption.SO_KEEPALIVE, true)
-            .handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(
-                            new CommandDecoder(),
-                            new CommandEncoder(),
-                            new ClientHandler());
-                }
-            });
-
-            // Start the client.
-            //ChannelFuture f = b.connect(DEFAULT_HOST, DEFAULT_PORT).sync();
-            Channel channel = b.connect(DEFAULT_HOST, DEFAULT_PORT).sync().channel();
-            System.out.printf("client connected to %s%n", channel.remoteAddress());
-            channel.writeAndFlush(Command.authCommand("login1", "pass1", "Dmitry"));
-            channel.writeAndFlush(Command.authCommand("login2", "pass2", "Dmitry"));
-            channel.writeAndFlush(Command.endCommand());
-            Thread.sleep(5000);
-            // Wait until the connection is closed.
-            // f.channel().closeFuture().sync()
-            channel.close();
-        } finally {
-            workerGroup.shutdownGracefully();
+            ns.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
+        new Thread(() -> {
+            try (Client client = new Client(DEFAULT_HOST, DEFAULT_PORT)) {
+                client.start("login1", "pass1");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        new Thread(() -> {
+            try (Client client = new Client(DEFAULT_HOST, DEFAULT_PORT)) {
+                client.start("login2", "pass2");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        new Thread(() -> {
+            try (Client client = new Client(DEFAULT_HOST, DEFAULT_PORT)) {
+                client.start("login3", "pass3");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
     }
 }

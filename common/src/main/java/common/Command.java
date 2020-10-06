@@ -1,6 +1,6 @@
 package common;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.List;
 
 public class Command implements Serializable {
@@ -37,6 +37,20 @@ public class Command implements Serializable {
         Command command = new Command();
         command.setType(CommandType.END);
         return command;
+    }
+
+    public static byte[] toByteArray(Command command) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream out = new ObjectOutputStream(bos)) {
+            out.writeObject(command);
+            return bos.toByteArray();
+        }
+    }
+    public static Command fromByteArray(byte[] bytes) throws IOException, ClassNotFoundException {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             ObjectInput in = new ObjectInputStream(bis)) {
+            return (Command) in.readObject();
+        }
     }
 
     @Override

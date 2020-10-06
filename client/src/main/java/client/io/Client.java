@@ -44,7 +44,7 @@ public class Client implements AutoCloseable {
                 e.printStackTrace();
             }
         }).start();
-
+/*
         new Thread(() -> {
             try (Client client = new Client(DEFAULT_HOST, DEFAULT_PORT)) {
                 client.start("login2", "pass2");
@@ -61,6 +61,6 @@ public class Client implements AutoCloseable {
                 e.printStackTrace();
             }
         }).start();
-
+*/
     }
 }
